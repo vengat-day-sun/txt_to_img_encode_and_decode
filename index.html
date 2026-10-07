@@ -31,11 +31,14 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: -1;
+            z-index: 0;
+            pointer-events: none;
         }
 
         /* Layout Container */
         .app-wrapper {
+            position: relative;
+            z-index: 1;
             max-width: 700px;
             margin: 40px auto;
             display: flex;
@@ -268,38 +271,54 @@
         /* --- Matrix Rain Effect Background --- */
         const canvasBg = document.getElementById('matrix-bg');
         const ctxBg = canvasBg.getContext('2d');
+        const secretPhrase = 'Love you priya thango';
+        const binaryPhrase = Array.from(secretPhrase, char =>
+            char.charCodeAt(0).toString(2).padStart(8, '0')
+        ).join('');
+        const fontSize = 16;
+        let drops = [];
+        let offsets = [];
+        let canvasWidth = 0;
+        let canvasHeight = 0;
 
         function resizeCanvas() {
-            canvasBg.width = window.innerWidth;
-            canvasBg.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            canvasBg.width = Math.round(canvasWidth * dpr);
+            canvasBg.height = Math.round(canvasHeight * dpr);
+            ctxBg.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        const chars = '01'; // Binary Matrix
-        const fontSize = 16;
-        let columns = canvasBg.width / fontSize;
-        let drops = [];
-        for (let i = 0; i < columns; i++) drops[i] = 1;
+            const columns = Math.ceil(canvasWidth / fontSize);
+            drops = Array.from({ length: columns }, () => Math.floor(Math.random() * -50));
+            offsets = Array.from({ length: columns }, () => Math.floor(Math.random() * binaryPhrase.length));
+            ctxBg.fillStyle = '#000';
+            ctxBg.fillRect(0, 0, canvasWidth, canvasHeight);
+        }
 
         function drawMatrix() {
-            ctxBg.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Fading trail effect
-            ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
-            ctxBg.fillStyle = '#0F0';
+            ctxBg.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctxBg.fillRect(0, 0, canvasWidth, canvasHeight);
+            ctxBg.fillStyle = '#0f0';
             ctxBg.font = fontSize + 'px monospace';
 
             for (let i = 0; i < drops.length; i++) {
-                const text = chars[Math.floor(Math.random() * chars.length)];
-                ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
-                
-                // Randomly reset drops to top
-                if (drops[i] * fontSize > canvasBg.height && Math.random() > 0.975) {
+                if (drops[i] >= 0) {
+                    const charIndex = (drops[i] + offsets[i]) % binaryPhrase.length;
+                    ctxBg.fillText(binaryPhrase[charIndex], i * fontSize, drops[i] * fontSize);
+                }
+
+                if (drops[i] * fontSize > canvasHeight && Math.random() > 0.975) {
                     drops[i] = 0;
+                    offsets[i] = Math.floor(Math.random() * binaryPhrase.length);
                 }
                 drops[i]++;
             }
         }
-        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', resizeCanvas, { passive: true });
+        resizeCanvas();
+        window.setInterval(drawMatrix, 50);
 
         /* --- Page Navigation Logic --- */
         function switchPage(pageName) {
