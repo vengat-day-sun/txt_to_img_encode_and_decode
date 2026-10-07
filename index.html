@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Image Encoder & Decoder</title>
+    <style>
+        /* --- Matrix Theme CSS --- */
+        :root {
+            --neon-green: #0f0;
+            --dark-bg: rgba(0, 20, 0, 0.85);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            color: var(--neon-green);
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
+        }
+
+        /* The Matrix background canvas */
+        #matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: var(--dark-bg);
+            border: 1px solid var(--neon-green);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 850px) {
+            .container {
+                margin: 20px;
+            }
+        }
+
+        h1, h2 {
+            text-align: center;
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+
+        .section {
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 20px;
+            border-bottom: 1px dashed var(--neon-green);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        /* Form Elements */
+        textarea, input, button {
+            background: rgba(0, 40, 0, 0.7);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        textarea::placeholder {
+            color: #050;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        input[type="file"]::-webkit-file-upload-button {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Image and Link display */
+        #outputCanvas {
+            max-width: 100%;
+            height: auto;
+            image-rendering: pixelated; /* Keeps the pixels sharp */
+            margin: 10px auto;
+            display: none;
+            border: 1px solid var(--neon-green);
+            width: 200px; /* Force visual upscale */
+        }
+
+        #downloadLink {
+            display: none;
+            text-align: center;
+            color: #000;
+            background: var(--neon-green);
+            text-decoration: none;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+        #downloadLink:hover {
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Matrix Background Effect -->
+    <canvas id="matrix-bg"></canvas>
+
+    <div class="container">
+        <h1>[ SYSTEM OVERRIDE ]</h1>
+        <p style="text-align:center;">Secure Data-to-Image Protocol</p>
+        
+        <!-- ENCODER SECTION -->
+        <div class="section">
+            <h2>ENCODE DATA</h2>
+            <textarea id="inputText" placeholder="Enter classified text here..."></textarea>
+            <button onclick="encodeText()">Generate Image Sequence</button>
+            
+            <canvas id="outputCanvas"></canvas>
+            <a id="downloadLink">Download Secure Image</a>
+        </div>
+
+        <!-- DECODER SECTION -->
+        <div class="section">
+            <h2>DECODE DATA</h2>
+            <input type="file" id="imageInput" accept="image/png, image/jpeg, image/bmp">
+            <button onclick="decodeImage()">Decrypt Image Sequence</button>
+            <textarea id="outputText" readonly placeholder="Decrypted data will appear here..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        /* --- Matrix Rain Effect Background --- */
+        const canvasBg = document.getElementById('matrix-bg');
+        const ctxBg = canvasBg.getContext('2d');
+
+        function resizeCanvas() {
+            canvasBg.width = window.innerWidth;
+            canvasBg.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const chars = '01';
+        const fontSize = 16;
+        let columns = canvasBg.width / fontSize;
+        let drops = [];
+        for (let i = 0; i < columns; i++) drops[i] = 1;
+
+        function drawMatrix() {
+            ctxBg.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Creates the fading trail effect
+            ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
+            ctxBg.fillStyle = '#0F0';
+            ctxBg.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvasBg.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 40);
+
+
+        /* --- Logic: Constants for Colors --- */
+        const LAVENDER = { r: 220, g: 149, b: 255 }; // '1'
+        const SKYBLUE = { r: 138, g: 207, b: 248 };  // '0'
+        const BLACK = { r: 0, g: 0, b: 0 };          // Padding
+
+
+        /* --- Encode Logic --- */
+        function encodeText() {
+            const text = document.getElementById('inputText').value;
+            if (!text) return alert("Error: No text to encode.");
+
+            // 1. Convert text to UTF-8 Binary String
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(text);
+            let binStr = "";
+            for (let b of bytes) {
+                binStr += b.toString(2).padStart(8, '0');
+            }
+
+            // 2. Calculate Square Dimensions
+            const numBits = binStr.length;
+            const sideLength = Math.ceil(Math.sqrt(numBits));
+            const totalPixels = sideLength * sideLength;
+
+            // 3. Prepare Canvas
+            const outCanvas = document.getElementById('outputCanvas');
+            outCanvas.width = sideLength;
+            outCanvas.height = sideLength;
+            const ctx = outCanvas.getContext('2d');
+            const imgData = ctx.createImageData(sideLength, sideLength);
+
+            // 4. Map Bits to Colors
+            for (let i = 0; i < totalPixels; i++) {
+                const pxIndex = i * 4;
+                if (i < numBits) {
+                    const bit = binStr[i];
+                    if (bit === '1') {
+                        imgData.data[pxIndex] = LAVENDER.r;
+                        imgData.data[pxIndex + 1] = LAVENDER.g;
+                        imgData.data[pxIndex + 2] = LAVENDER.b;
+                    } else {
+                        imgData.data[pxIndex] = SKYBLUE.r;
+                        imgData.data[pxIndex + 1] = SKYBLUE.g;
+                        imgData.data[pxIndex + 2] = SKYBLUE.b;
+                    }
+                } else {
+                    // Padding (Black)
+                    imgData.data[pxIndex] = BLACK.r;
+                    imgData.data[pxIndex + 1] = BLACK.g;
+                    imgData.data[pxIndex + 2] = BLACK.b;
+                }
+                imgData.data[pxIndex + 3] = 255; // Alpha (fully opaque)
+            }
+
+            // 5. Draw and show download link
+            ctx.putImageData(imgData, 0, 0);
+            outCanvas.style.display = 'block';
+            
+            const link = document.getElementById('downloadLink');
+            link.href = outCanvas.toDataURL("image/png");
+            link.download = "classified_data.png";
+            link.style.display = 'block';
+        }
+
+
+        /* --- Decode Logic --- */
+        function decodeImage() {
+            const fileInput = document.getElementById('imageInput');
+            if (!fileInput.files.length) return alert("Error: No image selected.");
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Create an invisible canvas to read pixel data
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = img.width;
+                    tempCanvas.height = img.height;
+                    const ctx = tempCanvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const imgData = ctx.getImageData(0, 0, img.width, img.height).data;
+                    let binaryStr = "";
+
+                    // Read Pixels
+                    for (let i = 0; i < imgData.length; i += 4) {
+                        const r = imgData[i];
+                        const g = imgData[i+1];
+                        const b = imgData[i+2];
+
+                        // Stop reading if we hit black (padding)
+                        // Allow slight tolerance in case browsers pre-multiply alpha on canvas
+                        if (r < 10 && g < 10 && b < 10) {
+                            break;
+                        }
+
+                        // Use distance calculation to decide if pixel is closer to Lavender or Skyblue
+                        const distToLavender = Math.abs(r - LAVENDER.r) + Math.abs(g - LAVENDER.g) + Math.abs(b - LAVENDER.b);
+                        const distToSkyBlue = Math.abs(r - SKYBLUE.r) + Math.abs(g - SKYBLUE.g) + Math.abs(b - SKYBLUE.b);
+
+                        if (distToLavender < distToSkyBlue) {
+                            binaryStr += '1';
+                        } else {
+                            binaryStr += '0';
+                        }
+                    }
+
+                    // Convert Binary String back to UTF-8
+                    const byteArrays = [];
+                    for (let i = 0; i < binaryStr.length; i += 8) {
+                        const chunk = binaryStr.slice(i, i + 8);
+                        if (chunk.length === 8) {
+                            byteArrays.push(parseInt(chunk, 2));
+                        }
+                    }
+
+                    try {
+                        const decoder = new TextDecoder('utf-8');
+                        const decodedText = decoder.decode(new Uint8Array(byteArrays));
+                        document.getElementById('outputText').value = decodedText;
+                    } catch (e) {
+                        document.getElementById('outputText').value = "ERROR: Failed to decode image. Data may be corrupted.";
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>
