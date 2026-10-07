@@ -143,8 +143,9 @@
         }
 
         textarea {
-            resize: vertical;
+            resize: none;
             min-height: 120px;
+            overflow: hidden;
         }
 
         textarea::placeholder {
@@ -336,6 +337,17 @@
             document.getElementById('nav-' + pageName).classList.add('active');
         }
 
+        /* Expand text areas to show their full contents. */
+        function autoExpandTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        document.querySelectorAll('textarea').forEach(textarea => {
+            textarea.addEventListener('input', () => autoExpandTextarea(textarea));
+            autoExpandTextarea(textarea);
+        });
+
         /* --- Constants for Colors --- */
         const LAVENDER = { r: 220, g: 149, b: 255 }; // '1'
         const SKYBLUE = { r: 138, g: 207, b: 248 };  // '0'
@@ -453,9 +465,13 @@
                     try {
                         const decoder = new TextDecoder('utf-8');
                         const decodedText = decoder.decode(new Uint8Array(byteArrays));
-                        document.getElementById('outputText').value = decodedText;
+                        const outputText = document.getElementById('outputText');
+                        outputText.value = decodedText;
+                        autoExpandTextarea(outputText);
                     } catch (e) {
-                        document.getElementById('outputText').value = "ERROR: Failed to decode image. Data may be corrupted.";
+                        const outputText = document.getElementById('outputText');
+                        outputText.value = "ERROR: Failed to decode image. Data may be corrupted.";
+                        autoExpandTextarea(outputText);
                     }
                 };
                 img.src = event.target.result;
