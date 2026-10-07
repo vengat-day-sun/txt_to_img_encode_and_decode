@@ -126,7 +126,7 @@
         }
 
         /* Form Elements */
-        textarea, .output-box-text, input, button.action-btn {
+        textarea, input, button.action-btn {
             background: rgba(0, 40, 0, 0.7);
             border: 1px solid var(--neon-green);
             color: var(--neon-green);
@@ -145,21 +145,6 @@
         }
 
         textarea::placeholder {
-            color: var(--dark-green);
-        }
-
-        /* Auto-expanding Display Div for Decoded Text */
-        .output-box-text {
-            min-height: 120px;
-            white-space: pre-wrap; /* Preserves line breaks and wraps text */
-            word-wrap: break-word;
-            text-align: left;
-            display: block;
-        }
-
-        /* CSS trick to show placeholder in a div */
-        .output-box-text:empty:before {
-            content: attr(data-placeholder);
             color: var(--dark-green);
         }
 
@@ -187,7 +172,7 @@
         }
 
         /* Outputs */
-        .output-container {
+        .output-box {
             text-align: center;
             margin-top: 20px;
         }
@@ -195,7 +180,7 @@
         #outputCanvas {
             max-width: 100%;
             height: auto;
-            image-rendering: pixelated; 
+            image-rendering: pixelated; /* Keeps the pixels sharp */
             display: none;
             border: 1px solid var(--neon-green);
             width: 250px;
@@ -259,7 +244,7 @@
                 <textarea id="inputText" placeholder="Enter classified text here..."></textarea>
                 <button class="action-btn" onclick="encodeText()">Generate Cipher Image</button>
                 
-                <div class="output-container">
+                <div class="output-box">
                     <canvas id="outputCanvas"></canvas>
                     <a id="downloadLink">Download Secure Image</a>
                 </div>
@@ -271,9 +256,8 @@
                 <input type="file" id="imageInput" accept="image/png, image/jpeg, image/bmp">
                 <button class="action-btn" onclick="decodeImage()">Decrypt Image Sequence</button>
                 
-                <div class="output-container">
-                    <!-- Changed to a div so it stretches fully to show all text -->
-                    <div id="outputText" class="output-box-text" data-placeholder="Decrypted data will appear here..."></div>
+                <div class="output-box">
+                    <textarea id="outputText" readonly placeholder="Decrypted data will appear here..."></textarea>
                 </div>
             </div>
 
@@ -343,6 +327,7 @@
             const text = document.getElementById('inputText').value;
             if (!text) return alert("Error: No text to encode.");
 
+            // 1. Convert text to UTF-8 Binary String
             const encoder = new TextEncoder();
             const bytes = encoder.encode(text);
             let binStr = "";
@@ -350,16 +335,19 @@
                 binStr += b.toString(2).padStart(8, '0');
             }
 
+            // 2. Calculate Square Dimensions
             const numBits = binStr.length;
             const sideLength = Math.ceil(Math.sqrt(numBits));
             const totalPixels = sideLength * sideLength;
 
+            // 3. Prepare Canvas
             const outCanvas = document.getElementById('outputCanvas');
             outCanvas.width = sideLength;
             outCanvas.height = sideLength;
             const ctx = outCanvas.getContext('2d');
             const imgData = ctx.createImageData(sideLength, sideLength);
 
+            // 4. Map Bits to Colors
             for (let i = 0; i < totalPixels; i++) {
                 const pxIndex = i * 4;
                 if (i < numBits) {
@@ -374,13 +362,15 @@
                         imgData.data[pxIndex + 2] = SKYBLUE.b;
                     }
                 } else {
+                    // Padding (Black)
                     imgData.data[pxIndex] = BLACK.r;
                     imgData.data[pxIndex + 1] = BLACK.g;
                     imgData.data[pxIndex + 2] = BLACK.b;
                 }
-                imgData.data[pxIndex + 3] = 255; 
+                imgData.data[pxIndex + 3] = 255; // Alpha (fully opaque)
             }
 
+            // 5. Draw and show download link
             ctx.putImageData(imgData, 0, 0);
             outCanvas.style.display = 'block';
             
@@ -410,15 +400,18 @@
                     const imgData = ctx.getImageData(0, 0, img.width, img.height).data;
                     let binaryStr = "";
 
+                    // Read Pixels
                     for (let i = 0; i < imgData.length; i += 4) {
                         const r = imgData[i];
                         const g = imgData[i+1];
                         const b = imgData[i+2];
 
+                        // Stop reading if we hit black (padding)
                         if (r < 10 && g < 10 && b < 10) {
                             break;
                         }
 
+                        // Determine closest color match
                         const distToLavender = Math.abs(r - LAVENDER.r) + Math.abs(g - LAVENDER.g) + Math.abs(b - LAVENDER.b);
                         const distToSkyBlue = Math.abs(r - SKYBLUE.r) + Math.abs(g - SKYBLUE.g) + Math.abs(b - SKYBLUE.b);
 
@@ -429,6 +422,7 @@
                         }
                     }
 
+                    // Convert Binary String back to UTF-8 Text
                     const byteArrays = [];
                     for (let i = 0; i < binaryStr.length; i += 8) {
                         const chunk = binaryStr.slice(i, i + 8);
@@ -440,10 +434,9 @@
                     try {
                         const decoder = new TextDecoder('utf-8');
                         const decodedText = decoder.decode(new Uint8Array(byteArrays));
-                        // Using innerText makes the div automatically expand to fit all lines
-                        document.getElementById('outputText').innerText = decodedText;
+                        document.getElementById('outputText').value = decodedText;
                     } catch (e) {
-                        document.getElementById('outputText').innerText = "ERROR: Failed to decode image. Data may be corrupted.";
+                        document.getElementById('outputText').value = "ERROR: Failed to decode image. Data may be corrupted.";
                     }
                 };
                 img.src = event.target.result;
